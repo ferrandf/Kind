@@ -16,16 +16,16 @@ var app = "";
 var compiled_apps = [];
 
 console.log("[1/2] Compiling apps:")
-let args = process.argv[2];
-// Only build 1 App
-// Ex: node build App.Playground
-if (args) { 
-  app = all_kind_apps.filter(name => name.toLowerCase().endsWith(args+".kind"));
-  if (app.lenght > 0) {
+if (process.argv[2]) { // Only build 1 App
+  app = all_kind_apps.filter(name => {
+    const match = process.argv[2].toLowerCase().slice(4) // remove "App."
+    return name.toLowerCase().endsWith(match) 
+      || name.toLowerCase().endsWith(match+".kind");
+  })[0];
+  if (app) {
     compiled_apps = compile_app(app);
   } else {
-    console.log("[error] App "+args+" not found.");
-    process.exit(1);
+    console.log("[error] App "+process.argv[2]+" not found.");
   }
 } else { // Build all Apps
   console.log("Tip: to build only 1 app, use \x1b[2mnode build.js app_name\x1b[0m.")
@@ -54,13 +54,10 @@ function compile_app(name) {
 
 // Write "src/app/index.js" to export the Apps
 process.chdir(code_dir);
-const remove_js_ext   = (name) => name.slice(0, -3);
-const remove_kind_ext = (name) => app.slice(0,-5);
 var index = "module.exports = {\n";
-const add_line = (app) => "  '" + remove_js_ext(app) + "': import('./"+app+"'),\n";
-
-if (app !== "") { // Check if need to add App to the export list
-  const app_export_format = "App."+remove_kind_ext(app)+".js";
+const add_line = (app) => "  '" + app.slice(0, -3) + "': import('./"+app+"'),\n";
+if (app !== "" && app !== undefined) { // Check if need to add App to the export list
+  const app_export_format = "App."+app.slice(0,-5)+".js";
   if (all_js_apps.includes(app_export_format)) all_js_apps.concat(app_export_format);
 }
 // Order Apps alphabetically
