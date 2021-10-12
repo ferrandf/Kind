@@ -1,0 +1,34 @@
+lte_0_n(n: Nat): Nat.lte(0, n) == true
+  refl
+
+gte_n_0(n: Nat): Nat.gte(n, 0) == true
+  refl
+
+eql_n_n(n: Nat): Nat.eql(n, n) == true
+  case n{
+    zero: refl
+    succ: let ind = eql_n_n(n.pred)
+    ind
+  }!
+
+is_even_double_n(n: Nat): Nat.is_even(Nat.double(n)) == true
+  case n{
+    zero: refl
+    succ: let ind = is_even_double_n(n.pred)
+    let sol = apply(Bool.not,apply(Bool.not,ind))
+    sol
+  }!
+
+gte_succ_n_0(n: Nat): Nat.gte(Nat.succ(n), 0) == true
+  case n{
+    zero: refl
+    succ: let ind = gte_succ_n_0(n.pred)
+    ind
+  }!
+
+gte_succ_n_n(n: Nat): Nat.gte(Nat.succ(n), n) == true
+  case n{
+    zero: refl
+    succ: let ind = gte_succ_n_n(n.pred)
+    ind
+  }!
