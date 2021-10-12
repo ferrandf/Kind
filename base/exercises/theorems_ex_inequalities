@@ -1,0 +1,19 @@
+or_true_a_neq_false(a: Bool): Bool.or(true, a) != false
+  (e)
+  Bool.true_neq_false(e)
+
+or_a_true_neq_false(a: Bool): Bool.or(a, true) != false
+  case a{
+    true: (e) Bool.true_neq_false(e)
+    false: (e) Bool.true_neq_false(e)
+  }!
+
+and_false_a_neq_true(a: Bool): Bool.and(false, a) != true
+  (e)
+  Bool.false_neq_true(e)
+
+and_a_false_neq_true(a: Bool): Bool.and(a, false) != true
+  case a{
+    true: (e) Bool.false_neq_true(e)
+    false: (e) Bool.false_neq_true(e)
+  }!
