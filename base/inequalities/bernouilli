@@ -1,6 +1,311 @@
+Nat.Order.chain.aux(
+  a: Nat
+  Hyp: Nat.lte(a, 0) == true
+): a == 0
+  case a with Hyp {
+    zero: refl
+    succ: contra = Bool.true_neq_false(mirror(Hyp))
+          Empty.absurd!(contra)
+  }!
+
+Nat.Order.chain(
+  a: Nat
+  b: Nat
+  c: Nat
+  Hyp0: Nat.lte(a, b) == true
+  Hyp1: Nat.lte(b, c) == true
+): Nat.lte(a, c) == true
+  case b with Hyp0 Hyp1 {
+    zero:
+      a_zero = mirror(Nat.Order.chain.aux(a, Hyp0))
+      qed = Hyp1 :: rewrite X in Nat.lte(X, _) == _ with a_zero
+      qed
+    succ:
+      case a with Hyp0 Hyp1 {
+        zero:
+          refl
+        succ:
+          case c with Hyp0 Hyp1 {
+            zero:
+              b_zero = Nat.Order.chain.aux(Nat.succ(b.pred), Hyp1)
+              contra = Nat.succ_neq_zero!(b_zero)
+              Empty.absurd!(contra)
+            succ:
+              ind = Nat.Order.chain(a.pred, b.pred, c.pred, Hyp0, Hyp1)
+              ind
+          }!
+      }!
+  }!
+
+Nat.Order.refl(a: Nat): Equal<Bool>(Nat.lte(a, a), true)
+  case a {
+    zero:
+      Equal.refl<Bool>(true)
+    succ:
+      let ind = Nat.Order.refl(a.pred)
+      ind
+  }: Equal<Bool>(Nat.lte(a, a), true)
+
+Nat.lte.zero_right(a: Nat, Hyp: Nat.lte(a, 0) == true) : a == 0
+	case a with Hyp{
+		zero: refl
+		succ: contra = Bool.false_neq_true(Hyp)
+		Empty.absurd!(contra)
+	}!
+
+	
+Nat.Order.Transitivity(
+	a: Nat, 
+	b: Nat, 
+	c: Nat,
+	Hyp1: Nat.lte(a, b) == true
+	Hyp2: Nat.lte(b, c) == true
+	//a<b && b<c => a<c
+) : Nat.lte(a, c) == true
+
+	case b with Hyp1 Hyp2{
+		zero: 
+			azero = mirror(Nat.lte.zero_right(a,Hyp1))
+			q = Hyp2 :: rewrite x in (Nat.lte(x,c)==true) with azero
+			q
+		succ: 
+			case a with Hyp1 Hyp2{
+				zero: refl
+				succ: 
+					case c with Hyp1 Hyp2{
+						zero: 
+							bzero = Nat.lte.zero_right(Nat.succ(b.pred),Hyp2)
+							contra = Nat.succ_neq_zero!(bzero)
+							Empty.absurd!(contra)
+						succ:
+							let ind = Nat.Order.Transitivity(a.pred,b.pred,c.pred,Hyp1,Hyp2)
+							ind
+					}!
+			}!
+	}!
+
+Nat.Order.add.left(
+  a: Nat
+  b: Nat
+  c: Nat
+  Hyp: Equal<Bool>(Nat.lte(a, b), true)
+): Equal<Bool>(Nat.lte(Nat.add(c, a), Nat.add(c, b)), true)
+  (case c {
+    zero:
+      (Hyp)
+        Hyp
+    succ:
+      (Hyp)
+        Nat.Order.add.left(a, b, c.pred, Hyp)
+  }:
+    (Hyp: Equal<Bool>(Nat.lte(a, b), true)) ->
+    Equal<Bool>(Nat.lte(Nat.add(c, a), Nat.add(c, b)), true))(
+      Hyp
+    )
+
+Nat.Order.add.right(
+  a: Nat
+  b: Nat
+  c: Nat
+  Hyp: Equal<Bool>(Nat.lte(a, b), true)
+): Equal<Bool>(Nat.lte(Nat.add(a, c), Nat.add(b, c)), true)
+  let lem = Nat.Order.add.left(a, b, c, Hyp)
+  let lem = Equal.rewrite<Nat>(
+    Nat.add(c, a), Nat.add(a, c), Nat.add.comm(c, a),
+    (x) Equal<Bool>(Nat.lte(x, Nat.add(c, b)), true), lem
+  )
+  let qed = Equal.rewrite<Nat>(
+    Nat.add(c, b), Nat.add(b, c), Nat.add.comm(c, b),
+    (x) Equal<Bool>(Nat.lte(Nat.add(a, c), x), true), lem
+  )
+  qed
+
+Nat.Order.add.combine(
+  a: Nat
+  b: Nat
+  c: Nat
+  d: Nat
+  Hyp0: Equal<Bool>(Nat.lte(a, b), true)
+  Hyp1: Equal<Bool>(Nat.lte(c, d), true)
+): Equal<Bool>(Nat.lte(Nat.add(a, c), Nat.add(b, d)), true)
+  let left_lem = Nat.Order.add.right(a, b, c, Hyp0)
+  let right_lem = Nat.Order.add.left(c, d, b, Hyp1)
+  let qed = Nat.Order.Transitivity(Nat.add(a, c), Nat.add(b, c), Nat.add(b,d), left_lem, right_lem)
+  qed
+  
+
+zero_mul_n(n: Nat): (0*n)==0
+    refl
+
+
+
+mul_expan(a: Nat, b: Nat): (Nat.add(b, Nat.mul(a,b))) == Nat.mul(Nat.succ(a),b)
+    refl
+
+
+Nat.Order.mul.left(
+  a: Nat
+  b: Nat
+  c: Nat
+  Hyp: Equal<Bool>(Nat.lte(a, b), Bool.true)
+): Equal<Bool>(Nat.lte(Nat.mul(c, a), Nat.mul(c, b)), Bool.true)
+  case c {
+    zero: 
+        let aux = Nat.Order.refl(0)
+        (aux :: rewrite X in (Equal<Bool>(Nat.lte(X, 0), Bool.true)) with mirror(zero_mul_n(a)))
+             :: rewrite X in (Equal<Bool>(Nat.lte(Nat.mul(0,a), X), Bool.true)) with mirror(zero_mul_n(b))
+    succ:
+      let ind = Nat.Order.mul.left(a, b, c.pred, Hyp)
+      let qed = Nat.Order.add.combine(a, b, Nat.mul(c.pred,a),Nat.mul(c.pred,b), Hyp, ind)
+      let qed2 = qed :: rewrite X in (Nat.lte(X,Nat.add(b,Nat.mul(c.pred,b))) == Bool.true) with mul_expan(c.pred,a)
+      let qed3 = qed2 :: rewrite X in (Nat.lte(Nat.mul(Nat.succ(c.pred),a),X) == Bool.true) with mul_expan(c.pred,b)
+      qed3
+  }: Equal<Bool>(Nat.lte(Nat.mul(c, a), Nat.mul(c, b)), true)
+
+  Nat.Order.mul.right(
+  a: Nat
+  b: Nat
+  c: Nat
+  Hyp: Equal<Bool>(Nat.lte(a, b), true)
+): Equal<Bool>(Nat.lte(Nat.mul(a, c), Nat.mul(b, c)), true)
+  let lem = Nat.Order.mul.left(a, b, c, Hyp)
+  let lem = Equal.rewrite<Nat>(
+    Nat.mul(c,a), Nat.mul(a, c), Nat.mul.comm(c, a)
+    (x) Equal<Bool>(Nat.lte(x, Nat.mul(c, b)), Bool.true), lem
+  )
+  let qed = Equal.rewrite<Nat>(
+    Nat.mul(c, b), Nat.mul(b, c), Nat.mul.comm(c, b)
+    (x) Equal<Bool>(Nat.lte(Nat.mul(a, c), x), Bool.true), lem
+  )
+  qed
+
+Nat.Order.mul.combine(
+    a:Nat
+    b: Nat
+    c: Nat
+    d: Nat
+    Hyp0: Equal<Bool>(Nat.lte(a,b), true)
+    Hyp1: Equal<Bool>(Nat.lte(c,d), true)
+):  Equal<Bool>(Nat.lte(a*c,b*d),true)
+    let left_lem = Nat.Order.mul.right(a, b, c, Hyp0)
+    let right_lem = Nat.Order.mul.left(c, d, b, Hyp1)
+    let qed = Nat.Order.chain(Nat.mul(a, c), Nat.mul(b, c), Nat.mul(b,d), left_lem, right_lem)
+    qed
+
+a_lte_succ(a: Nat): Nat.lte(a, Nat.succ(a)) == true
+    case a {
+        zero: refl
+        succ: 
+            let ind = a_lte_succ(a.pred)
+            ind
+    }!
+
+one_lte_succ(a: Nat): Nat.lte(1, Nat.succ(a)) == true 
+    case a {
+        zero: refl
+        succ: 
+            let ind = one_lte_succ(a.pred)
+            let aux = a_lte_succ(Nat.succ(a.pred))
+            Nat.Order.chain(1, Nat.succ(a.pred), Nat.succ(Nat.succ(a.pred)), ind, aux)
+    }!
+
+succ_eq_one(a: Nat): (1 + a) == Nat.succ(a)
+    case a {
+        zero: refl
+        succ: apply(Nat.succ, succ_eq_one(a.pred))
+    }!
+
+exp.zero(a: Nat): Nat.pow(a, 0) == 1
+    refl
+
+Nat.Order.exp(
+    a: Nat
+    b: Nat
+    c: Nat
+    Hyp: Nat.lte(a, b) == true
+):  Nat.lte(Nat.pow(a, c), Nat.pow(b, c)) == true
+    case c {
+        zero:
+            let aux = Nat.Order.refl(1)
+            let aux2 = aux :: rewrite X in (Nat.lte(X,1) == Bool.true) with mirror(exp.zero(a))
+            aux2 :: rewrite X in (Nat.lte(Nat.pow(a,0),X) == Bool.true) with mirror(exp.zero(b))
+        succ: 
+            let ind = Nat.Order.exp(a, b, c.pred, Hyp)
+            let qed = Nat.Order.mul.combine(a, b, Nat.pow(a, c.pred), Nat.pow(b, c.pred), Hyp, ind)
+            qed
+    }!
+
+Nat.Order.exp.one(a: Nat): Nat.pow(1, a) == 1
+    case a {
+        zero: refl
+        succ: 
+            let ind = Nat.Order.exp.one(a.pred)
+            apply(Nat.mul(1), ind)
+    }!
+
+one_mul_n(n: Nat): (1*n) == n
+    case n {
+        zero: refl
+        succ: apply(Nat.succ, one_mul_n(n.pred))
+    }!
+
+n_mul_one(n: Nat): (n*1) == n
+    let aux = one_mul_n(n)
+    aux :: rewrite X in (X == _) with Nat.mul.comm(1, n)
+
+one_add_n(n: Nat): (0 + n) == n
+    refl
+
+n_add_one(n: Nat): (n + 0) == n
+    let aux = one_add_n(n)
+    aux :: rewrite X in (X == _) with Nat.add.comm(0, n)
+
+
+Nat.Order.bernoulli.lemma(
+  a: Nat
+  b: Nat
+//(1+a)^b + a <= (1+a)^b
+): Nat.lte(Nat.add(Nat.pow(Nat.add(1,a),b),a), Nat.pow(Nat.add(1, a), Nat.succ(b))) == true
+  let aux1 = one_lte_succ(a)
+  let aux2 = aux1 :: rewrite X in (Nat.lte(1, X) == Bool.true) with mirror(succ_eq_one(a))
+  let aux3 = Nat.Order.exp(1, Nat.add(1, a), b, aux2)
+  let aux4 = Nat.Order.mul.right(Nat.pow(1,b),Nat.pow(Nat.add(1,a),b), a, aux3)
+  let aux5 = Nat.Order.add.left(Nat.mul(Nat.pow(1,b),a), Nat.mul(Nat.pow(Nat.add(1,a),b),a), Nat.mul(Nat.pow(Nat.add(1, a), b), 1), aux4)
+  let aux6 = aux5 :: rewrite X in (Nat.lte(Nat.add(Nat.mul(Nat.pow(Nat.add(1,a),b),1),Nat.mul(Nat.pow(1,b),a)),X) == Bool.true) with mirror(Nat.mul.distrib_left(Nat.pow(Nat.add(1,a),b),1,a))
+  let aux7 = aux6 :: rewrite X in (Nat.lte(Nat.add(Nat.mul(Nat.pow(Nat.add(1,a),b),1),Nat.mul(Nat.pow(1,b),a)),X) == Bool.true) with Nat.mul.comm(Nat.pow(Nat.add(1,a),b),Nat.add(1,a))
+  let aux8 = aux7 :: rewrite X in (Nat.lte(Nat.add(X,Nat.mul(Nat.pow(1,b),a)),Nat.mul(Nat.add(1,a),Nat.pow(Nat.add(1,a),b))) == Bool.true) with n_mul_one(Nat.pow(Nat.add(1,a),b))
+  let aux9 = aux8 :: rewrite X in (Nat.lte(Nat.add(Nat.pow(Nat.add(1,a),b),Nat.mul(X,a)),Nat.mul(Nat.add(1,a),Nat.pow(Nat.add(1,a),b))) == Bool.true) with Nat.Order.exp.one(b)
+  let aux10 = aux9 :: rewrite X in (Nat.lte(Nat.add(Nat.pow(Nat.add(1,a),b),X),Nat.mul(Nat.add(1,a),Nat.pow(Nat.add(1,a),b))) == Bool.true) with one_mul_n(a)
+  aux10
+
 Nat.Order.bernoulli(
   a: Nat,
   b: Nat,
 // 1 + a*b <= (1 + a)^b
-): Nat.lte(1 + Nat.mul(a, b), Nat.pow((1 + a), b)) == true
-  
+): Nat.lte(Nat.add(1, Nat.mul(a, b)), Nat.pow(Nat.add(1, a), b)) == true
+  case b {
+      zero:  
+        let qed = Nat.Order.refl(1)
+        let qed1 = qed :: rewrite X in (Nat.lte(X,1) == true) with mirror(n_add_one(1))
+        let qed2 = qed1 :: rewrite X in (Nat.lte(Nat.add(1,0),X) == Bool.true) with mirror(exp.zero(1+a))
+        let qed3 = qed2 :: rewrite X in (Nat.lte(Nat.add(1,X),Nat.pow(Nat.add(1,a),0)) == Bool.true) with mirror(zero_mul_n(a))
+        let qed4 = qed3 :: rewrite X in (Nat.lte(Nat.add(1,X),Nat.pow(Nat.add(1,a),0)) == Bool.true) with Nat.mul.comm(0,a)
+        qed4
+      succ: 
+        let aux1 = Nat.Order.bernoulli(a, b.pred)
+        let aux2 = Nat.Order.add.right(Nat.add(1,Nat.mul(a,b.pred)), Nat.pow(Nat.add(1,a),b.pred), a, aux1)
+        let aux = Nat.add.assoc(1,Nat.mul(a,b.pred),a)
+        let aux3 = Equal.rewrite<Nat>(
+          Nat.add(Nat.add(1,Nat.mul(a,b.pred)),a), Nat.add(1,Nat.add(Nat.mul(a,b.pred),a))
+          aux,
+          (X) Equal<Bool>(Nat.lte(X,Nat.add(Nat.pow(Nat.add(1,a),b.pred),a)), true)
+          aux2
+        )
+        let aux4 = aux3 :: rewrite X in (Nat.lte(Nat.add(1, X),Nat.add(Nat.pow(Nat.add(1,a),b.pred),a)) == Bool.true) with Nat.add.comm(Nat.mul(a,b.pred),a)
+        let aux5 = aux4 :: rewrite X in (Nat.lte(Nat.add(1,Nat.add(a,X)),Nat.add(Nat.pow(Nat.add(1,a),b.pred),a)) == Bool.true) with Nat.mul.comm(a,b.pred)
+        let aux6 = aux5 :: rewrite X in (Nat.lte(Nat.add(1,X),Nat.add(Nat.pow(Nat.add(1,a),b.pred),a)) == Bool.true) with mul_expan(b.pred,a)
+        let aux7 = aux6 :: rewrite X in (Nat.lte(Nat.add(1,X),Nat.add(Nat.pow(Nat.add(1,a),b.pred),a)) == Bool.true) with Nat.mul.comm(Nat.succ(b.pred),a)
+        let aux8 = Nat.Order.bernoulli.lemma(a, b.pred)
+        let aux9 = Nat.Order.Transitivity(Nat.add(1,Nat.mul(a,Nat.succ(b.pred))), Nat.add(Nat.pow(Nat.add(1,a),b.pred),a), Nat.pow(Nat.add(1,a),Nat.succ(b.pred)), aux7, aux8)
+        aux9
+  }!
