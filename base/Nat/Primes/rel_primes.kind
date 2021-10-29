@@ -1,0 +1,8 @@
+rel_primes(a: Nat, b: Nat): Bool
+  let g = Nat.gcd(a,b)
+  let g = Nat.sub(g,1)
+  case g{
+    zero: true
+    succ: false
+  }!
+  
